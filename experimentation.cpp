@@ -6,11 +6,11 @@ int main() {
     // initialize screen
     initscr();
 
-    // // print to screen
+    // print to screen
     // printw("Hello World\n");
     
-    // // // refresh screen output
-    // // refresh();
+    // refresh screen output
+    // refresh();
     // mvprintw(10, 20, "Hello World\n");
 
     // create new window
