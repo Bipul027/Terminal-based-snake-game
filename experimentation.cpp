@@ -1,5 +1,6 @@
 #include <bits/stdc++.h>
 #include <curses.h>
+using namespace std;
 
 int main() {
     // initialize screen
