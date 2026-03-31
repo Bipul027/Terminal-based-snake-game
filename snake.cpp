@@ -1,5 +1,7 @@
 #include <bits/stdc++.h>
 #include <curses.h>
+#include <random>
+#include <stdexcept>
 using namespace std;
 
 const int WIDTH = 30;
@@ -9,6 +11,8 @@ const int HEAD_Y = HEIGHT/2;
 const char BODY_CHAR = '*';
 const char HEAD_CHAR = '@';
 const int TIME_DELAY = 100000;
+const int FOOD_AMOUNT = (WIDTH*HEIGHT)/100;
+
 
 class Board {
 private:
@@ -20,16 +24,25 @@ public:
         height = HEIGHT;
         width = WIDTH;
     }
-
+    
+    // get board height
+    const int getHeight() const {
+        return height;
+    }
+    
+    // get board width
+    const int getWidth() const {
+        return width;
+    }
     // make board
     void makeBoard() {
-        for (int j = 0; j < WIDTH-1; j++) {
+        for (int j = 0; j <= width-1; j++) {
             mvprintw(0, j*2+1, "_");
         }
-        for (int i = 1; i < HEIGHT; i++) {
-            for (int j = 0; j < WIDTH; j++) {
-                if (j == WIDTH-1) {
-                    mvprintw(i, j*2, "|");
+        for (int i = 1; i <= height; i++) {
+            for (int j = 0; j <= width; j++) {
+                if (j == width) {
+                    mvprintw(i, j * 2, "|");
                 }
                 else mvprintw(i, j * 2, "|_"); 
             }
@@ -52,42 +65,42 @@ public:
         headChar = HEAD_CHAR;
         snakeBody = {{HEAD_Y, HEAD_X}, {HEAD_Y, HEAD_X-1}};
     }
-
+    
     // get the length of the snake
     const int getLength() const {
         return length;
     }
-
+    
     // get the coordinates of the body
     const deque<pair<int, int>>& getSnakeBody() const {
         return snakeBody;
     }
-
+    
     // get the head
     const pair<int, int>& getHead() const {
         return snakeBody[0];
     }
-
+    
     // get the tail
     const pair<int, int>& getTail() const {
         return snakeBody.back();
     }
-
+    
     // remove last element from snake's body list
     void removeTail() {
         snakeBody.pop_back();
     }
-
+    
     // extend snake by adding new tail element
     void addTail(pair<int, int> &newTail) {
         snakeBody.push_back(newTail);
     }
-
+    
     // replace head by adding new head
     void addHead(pair<int, int> &newHead) {
         snakeBody.push_front(newHead);
     }
-
+    
     // get the direction in which snake's head is facing
     char headDirection() {
         if (snakeBody[0].first == snakeBody[1].first) {
@@ -167,7 +180,7 @@ public:
         addTail(newTail);
         length++;
     }
-
+    
     // print the snake on the specified coordinates
     void printSnake() {
         for (int i = 0; i < length; i++) {
@@ -178,93 +191,206 @@ public:
         }
         refresh();
     }
-    // instead of printSnake here, just draw a new head and erase previous tail
 };
 
+// random number generator in a 2D vector (for generating random food)
+pair<int, int> getRandom2D(const std::vector<std::vector<int>>& grid) {
+    std::vector<std::pair<int,int>> cells;
+
+    for (int i = 0; i < grid.size(); i++) {
+        for (int j = 0; j < grid[i].size(); j++) {
+            cells.push_back({i, j});
+        }
+    }
+
+    if (cells.empty()) {
+        throw std::runtime_error("2D vector is empty");
+    }
+
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+
+    std::uniform_int_distribution<> dis(0, cells.size() - 1);
+    auto [i, j] = cells[dis(gen)];
+
+    return {i, j};
+}
 class Food {
 private:
-    // data variables come here
+    int x, y;
     
 public: 
-    // functions come here
+    Food() {
+        x = 0; y = 1;
+    }
+    
+    // take input as cells not occupied by the snake and initialize food with random coordinates
+    Food(const vector<vector<bool>> emptyCells) {
+        int ht = emptyCells.size()-1, wt = emptyCells[0].size();
+        vector<vector<int>> emptyYtoX(ht+1);
+
+        for (int i = 1; i <= ht; i++) {
+            for (int j = 0; j < wt; j++) {
+                if (emptyCells[i][j]) emptyYtoX[i].push_back(j);
+            }
+        }
+        auto randCoord = getRandom2D(emptyYtoX);
+        y = randCoord.first;
+        x = randCoord.second;
+    }
+
+    // get x coordinate of food
+    int getx() {
+        return x;
+    }
+
+    // get y coordinate of food
+    int gety() {
+        return y;
+    }
+
+    void printFood() {
+        mvprintw(y, x * 2, "|%c", '#');
+    }
+
 };
 
 class Game {
 private:
     Board board;
     Snake snake;
+    int foodAmount;
+    vector<Food> foodList;
 
 public: 
+    // generating 2D array of cells which are not occupied by the cells
+    const vector<vector<bool>> emptyCells(const Snake &newSnake, const Board &newBoard) const {
+        vector<vector<bool>> empty(1+newBoard.getHeight(), vector<bool>(newBoard.getWidth(), true));
+        deque<pair<int, int>> body = newSnake.getSnakeBody();
+        for (int j = 0; j < newBoard.getWidth(); j++) empty[0][j] = false;
+        for (auto &[x, y] : body) {
+            empty[x][y] = false;
+        }
+        return empty;
+    }
+
     // default constructor
     Game() {
         snake = Snake();
         board = Board();
         board.makeBoard();
         snake.printSnake();
+        // generating foodAmount number of random food coordinates in foodList
+        auto empty = emptyCells(snake, board);
+        foodAmount = FOOD_AMOUNT;
+        for (int i = 0; i < foodAmount; i++) {
+            Food newfood(empty);
+            foodList.push_back(newfood);
+        }
     }
 
-    Game(Snake newSnake, Board newBoard) {
+
+    // construct game using existing components
+    Game(const Snake &newSnake, const Board &newBoard) {
         snake = newSnake;
         board = newBoard;
         board.makeBoard();
         snake.printSnake();
+
+        // generating foodAmount number of random food coordinates in foodList
+        auto empty = emptyCells(newSnake, newBoard);
+        foodAmount = FOOD_AMOUNT;
+        for (int i = 0; i < foodAmount; i++) {
+            Food newfood(empty);
+            foodList.push_back(newfood);
+        }
+    }
+    
+    // remove food when snake eats it
+    void removeFood(int x, int y) {
+        for (int i = 0; i < foodList.size(); i++) {
+            Food &food = foodList[i];
+            if (x == food.getx() && y == food.gety()) {
+                foodList.erase(foodList.begin() + i);
+                break;
+            }
+        }
+    }
+    
+    // add new food element when snake eats existing food element
+    void updateFood() {
+        auto empty = emptyCells(snake, board);
+        for (Food &food : foodList) {
+            empty[food.gety()][food.getx()] = false;
+        }
+        Food newfood(empty);
+        foodList.push_back(newfood);
     }
 
-    void updateSnake() {
+    // check if head of some snake coincides with some food element
+    bool foodEaten() {
+        int headx = snake.getHead().second, heady = snake.getHead().first;
+        for (Food &food : foodList) {
+            if (food.getx() == headx && food.gety() == heady) return true;
+        }
+        return false;
+
+    }
+
+    // print new snake on the board along with the new food
+    void updateGame() {
         clear();
         board.makeBoard();
         snake.printSnake();
-    }
-    
-    void update(int ch) {
-        if (ch == ERR) {
-            snake.moveForward();
-            
-            updateSnake();
+        for (Food &food : foodList) {
+            food.printFood();
         }
-        if (ch == KEY_UP || ch == 'W' || ch == 'w') {
-            if (snake.headDirection() == 'U' || snake.headDirection() == 'D') return;
-            else if (snake.headDirection() == 'R') snake.moveLeft();
-            else snake.moveRight();
+        refresh();
+    }
 
-            updateSnake();
+    // find turning direction of snake from user input
+    char handleInput(int ch) {
+        if (ch == ERR) return 'F';
+
+        else if (ch == KEY_UP || ch == 'W' || ch == 'w') {
+            if (snake.headDirection() == 'U' || snake.headDirection() == 'D') return 'F';
+            else if (snake.headDirection() == 'R') return 'L';
+            else return 'R';
         }
 
         else if (ch == KEY_DOWN || ch == 'S' || ch == 's') {
-            if (snake.headDirection() == 'U' || snake.headDirection() == 'D') return;
-            else if (snake.headDirection() == 'R') snake.moveRight();
-            else snake.moveLeft();
-
-            updateSnake();
+            if (snake.headDirection() == 'U' || snake.headDirection() == 'D') return 'F';
+            else if (snake.headDirection() == 'R') return 'R';
+            else return 'L';
         }
 
         else if (ch == KEY_RIGHT || ch == 'D' || ch == 'd') {
-            if (snake.headDirection() == 'R' || snake.headDirection() == 'L') return;
-            else if (snake.headDirection() == 'U') snake.moveRight();
-            else snake.moveLeft();
-
-            updateSnake();
+            if (snake.headDirection() == 'R' || snake.headDirection() == 'L') return 'F';
+            else if (snake.headDirection() == 'U') return 'R';
+            else return 'L';
         }
-
+        
         else if (ch == KEY_LEFT || ch == 'A' || ch == 'a') {
-            if (snake.headDirection() == 'R' || snake.headDirection() == 'L') return;
-            else if (snake.headDirection() == 'U') snake.moveLeft();
-            else snake.moveRight();
-
-            updateSnake();
+            if (snake.headDirection() == 'R' || snake.headDirection() == 'L') return 'F';
+            else if (snake.headDirection() == 'U') return 'L';
+            else return 'R';
         }
+        else return 'F';
+    }
 
-        else if (ch == ' '){
-            snake.moveForward();
+    // update snake based on character input from user and also handle eating of food
+    void update(char move) {
+        if (move == 'F') snake.moveForward();
+        else if (move == 'R') snake.moveRight();
+        else if (move == 'L') snake.moveLeft();
 
-            updateSnake();
-        }
-
-        else if (ch == 'E' || ch == 'e') {
+        if (foodEaten()) {
+            removeFood(snake.getHead().second, snake.getHead().first);
+            updateFood();
             snake.extendSnake();
-
-            updateSnake();
         }
+
+        updateGame();
     }
 };
 
@@ -275,7 +401,7 @@ int main() {
     int ch;
     while(true) {
         ch = getch();
-        newGame.update(ch);
+        newGame.update(newGame.handleInput(ch));
         usleep(TIME_DELAY);
     }
     getch();
