@@ -10,7 +10,7 @@ const int HEAD_X = WIDTH/2;
 const int HEAD_Y = HEIGHT/2;
 const char BODY_CHAR = '*';
 const char HEAD_CHAR = '@';
-const int TIME_DELAY = 100000;
+const int TIME_DELAY = 150000;
 const int FOOD_AMOUNT = (WIDTH*HEIGHT)/100;
 
 
@@ -181,6 +181,10 @@ public:
         length++;
     }
     
+    // check whether snake is dead
+    // bool isDead() {
+
+    // }
     // print the snake on the specified coordinates
     void printSnake() {
         for (int i = 0; i < length; i++) {
@@ -261,6 +265,7 @@ private:
     Snake snake;
     int foodAmount;
     vector<Food> foodList;
+    int score;
 
 public: 
     // generating 2D array of cells which are not occupied by the cells
@@ -287,6 +292,7 @@ public:
             Food newfood(empty);
             foodList.push_back(newfood);
         }
+        score = 0;
     }
 
 
@@ -304,6 +310,8 @@ public:
             Food newfood(empty);
             foodList.push_back(newfood);
         }
+
+        score = 0;
     }
     
     // remove food when snake eats it
@@ -331,10 +339,24 @@ public:
     bool foodEaten() {
         int headx = snake.getHead().second, heady = snake.getHead().first;
         for (Food &food : foodList) {
-            if (food.getx() == headx && food.gety() == heady) return true;
+            if (food.getx() == headx && food.gety() == heady) {
+                score++;
+                return true;
+            }
         }
         return false;
 
+    }
+
+    // get the score
+    int getScore() {
+        return score;
+    }
+
+    // display the score
+    void displayScore() {
+        mvprintw(0, 0, "SCORE: %d", score);
+        refresh();
     }
 
     // print new snake on the board along with the new food
@@ -392,19 +414,65 @@ public:
 
         updateGame();
     }
+
+    // condition for snake to die
+    bool isSnakeDead() {
+        pair<int, int> head = snake.getHead();
+        if (head.first >= board.getHeight() || head.second >= board.getWidth() || head.first <= 0 || head.second < 0) return true;
+        else {
+            deque<pair<int, int>> body = snake.getSnakeBody();
+            for (int i = 1; i < snake.getLength(); i++) {
+                if (body[i] == head) return true;
+            }
+        }
+        return false;
+    }
 };
 
 int main() {
+
     initscr();
-    Game newGame;
-    nodelay(stdscr, TRUE);
-    int ch;
+    keypad(stdscr, TRUE);
+    noecho();
+    curs_set(0);
+    
+    // start menu
+    mvprintw(0, 0, "========= THE SNAKE GAME =========");
+    mvprintw(1, 0, "START GAME? (Press any key)");
+    mvprintw(2, 0, "QUIT(q)");
+    refresh();
+    char start = getch();
+    if (start == 'q' || start == 'Q') return 0;
+    
+    // main game loop
     while(true) {
-        ch = getch();
-        newGame.update(newGame.handleInput(ch));
-        usleep(TIME_DELAY);
+        // initialize game
+        Game game;
+        
+        // apply no delay for real-time input
+        nodelay(stdscr, TRUE);
+
+        int ch;
+        // play until game over
+        while(!game.isSnakeDead()) {
+            ch = getch();
+            game.update(game.handleInput(ch));
+            game.displayScore();
+            usleep(TIME_DELAY);
+        }
+        clear();
+
+        // game over screen
+        nodelay(stdscr, FALSE);
+        mvprintw(0, 0, "========= GAME OVER =========");
+        mvprintw(1, 0,"YOUR SCORE IS: %d", game.getScore());
+        mvprintw(3, 0, "PLAY AGAIN? (Press any key)");
+        mvprintw(4, 0, "QUIT(q)");
+        refresh();
+        char end = getch();
+        if (end == 'q' || end == 'Q') break;
+        else continue;
     }
-    getch();
     endwin();
     return 0;
 }
