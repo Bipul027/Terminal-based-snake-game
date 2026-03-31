@@ -8,6 +8,7 @@ const int HEAD_X = WIDTH/2;
 const int HEAD_Y = HEIGHT/2;
 const char BODY_CHAR = '*';
 const char HEAD_CHAR = '@';
+const int TIME_DELAY = 100000;
 
 class Board {
 private:
@@ -87,16 +88,6 @@ public:
         snakeBody.push_front(newHead);
     }
 
-    // print the snake on the specified coordinates
-    void printSnake() {
-        for (int i = 0; i < length; i++) {
-            int y = snakeBody[i].first;
-            int x = snakeBody[i].second;
-            if (i == 0) mvprintw(y, x*2, "|%c", headChar);
-            else mvprintw(y, x*2, "|%c", bodyChar);
-            refresh();
-        }
-    }
     // get the direction in which snake's head is facing
     char headDirection() {
         if (snakeBody[0].first == snakeBody[1].first) {
@@ -127,7 +118,7 @@ public:
         else if (headDir == 'L') newHead.second--;
         else if (headDir == 'U') newHead.first--;
         else newHead.first++;
-    
+        
         addHead(newHead);
         removeTail();
     }
@@ -142,7 +133,7 @@ public:
         else if (headDir == 'L') newHead.first--;
         else if (headDir == 'U') newHead.second++;
         else newHead.second--;
-    
+        
         addHead(newHead);
         removeTail();
     }
@@ -157,7 +148,7 @@ public:
         else if (headDir == 'L') newHead.first++;
         else if (headDir == 'U') newHead.second--;
         else newHead.second++;
-    
+        
         addHead(newHead);
         removeTail();
     }
@@ -167,14 +158,27 @@ public:
         char tailDir = tailDirection();
         auto curTail = snakeBody.back();
         pair<int, int> newTail = curTail;
-    
+        
         if (tailDir == 'R') newTail.second--;
         else if (tailDir == 'L') newTail.second++;
         else if (tailDir == 'U') newTail.first++;
         else newTail.first--;
-    
+        
         addTail(newTail);
+        length++;
     }
+
+    // print the snake on the specified coordinates
+    void printSnake() {
+        for (int i = 0; i < length; i++) {
+            int y = snakeBody[i].first;
+            int x = snakeBody[i].second;
+            if (i == 0) mvprintw(y, x*2, "|%c", headChar);
+            else mvprintw(y, x*2, "|%c", bodyChar);
+        }
+        refresh();
+    }
+    // instead of printSnake here, just draw a new head and erase previous tail
 };
 
 class Food {
@@ -195,16 +199,85 @@ public:
     Game() {
         snake = Snake();
         board = Board();
+        board.makeBoard();
+        snake.printSnake();
     }
 
+    Game(Snake newSnake, Board newBoard) {
+        snake = newSnake;
+        board = newBoard;
+        board.makeBoard();
+        snake.printSnake();
+    }
+
+    void updateSnake() {
+        clear();
+        board.makeBoard();
+        snake.printSnake();
+    }
+    
+    void update(int ch) {
+        if (ch == ERR) {
+            snake.moveForward();
+            
+            updateSnake();
+        }
+        if (ch == KEY_UP || ch == 'W' || ch == 'w') {
+            if (snake.headDirection() == 'U' || snake.headDirection() == 'D') return;
+            else if (snake.headDirection() == 'R') snake.moveLeft();
+            else snake.moveRight();
+
+            updateSnake();
+        }
+
+        else if (ch == KEY_DOWN || ch == 'S' || ch == 's') {
+            if (snake.headDirection() == 'U' || snake.headDirection() == 'D') return;
+            else if (snake.headDirection() == 'R') snake.moveRight();
+            else snake.moveLeft();
+
+            updateSnake();
+        }
+
+        else if (ch == KEY_RIGHT || ch == 'D' || ch == 'd') {
+            if (snake.headDirection() == 'R' || snake.headDirection() == 'L') return;
+            else if (snake.headDirection() == 'U') snake.moveRight();
+            else snake.moveLeft();
+
+            updateSnake();
+        }
+
+        else if (ch == KEY_LEFT || ch == 'A' || ch == 'a') {
+            if (snake.headDirection() == 'R' || snake.headDirection() == 'L') return;
+            else if (snake.headDirection() == 'U') snake.moveLeft();
+            else snake.moveRight();
+
+            updateSnake();
+        }
+
+        else if (ch == ' '){
+            snake.moveForward();
+
+            updateSnake();
+        }
+
+        else if (ch == 'E' || ch == 'e') {
+            snake.extendSnake();
+
+            updateSnake();
+        }
+    }
 };
 
 int main() {
     initscr();
-    // Board newBoard;
-    // newBoard.makeBoard();
-    // Snake newSnake;
-    // newSnake.printSnake();
+    Game newGame;
+    nodelay(stdscr, TRUE);
+    int ch;
+    while(true) {
+        ch = getch();
+        newGame.update(ch);
+        usleep(TIME_DELAY);
+    }
     getch();
     endwin();
     return 0;
