@@ -439,7 +439,8 @@ int main() {
     // start menu
     mvprintw(0, 0, "========= THE SNAKE GAME =========");
     mvprintw(1, 0, "START GAME? (Press any key)");
-    mvprintw(2, 0, "QUIT(q)");
+    mvprintw(2, 0, "---------------------------");
+    mvprintw(3, 0, "QUIT(q)");
     refresh();
     char start = getch();
     if (start == 'q' || start == 'Q') return 0;
@@ -449,9 +450,12 @@ int main() {
         // select difficulty menu
         clear();
         mvprintw(0, 0, "SELECT GAME DIFFICULTY:");
-        mvprintw(1, 0, "EASY (e)");
-        mvprintw(2, 0, "MEDIUM (m)");
-        mvprintw(3, 0, "HARD (h)");
+        mvprintw(1, 0, "---------------------------");
+        mvprintw(2, 0, "EASY (e)");
+        mvprintw(3, 0, "MEDIUM (m)");
+        mvprintw(4, 0, "HARD (h)");
+        mvprintw(5, 0, "---------------------------");
+        mvprintw(6, 0, "QUIT(q)");
     
         int difficulty = 0;
         int c = 0;
@@ -469,11 +473,15 @@ int main() {
                 difficulty = 2;
                 break;
             }
+            else if (diff == 'q' || diff == 'Q') {
+                difficulty = -1;
+                break;
+            }
             else {
-                mvprintw(4+c, 0, "INVALID INPUT");
+                mvprintw(7+c, 0, "INVALID INPUT");
             }
         }
-    
+        if (difficulty == -1) break;
         TIME_DELAY = 150000 - 50000*(difficulty);
         clear();
     
@@ -499,6 +507,7 @@ int main() {
             nodelay(stdscr, FALSE);
             mvprintw(0, 0, "========= GAME OVER =========");
             mvprintw(1, 0,"YOUR SCORE IS: %d", game.getScore());
+            mvprintw(2, 0, "---------------------------");
             mvprintw(3, 0, "PLAY AGAIN? (Press ENTER)");
             mvprintw(4, 0, "CHANGE DIFFICULTY? (Press c)");
             mvprintw(5, 0, "QUIT(q)");
