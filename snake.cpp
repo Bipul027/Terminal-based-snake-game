@@ -181,10 +181,6 @@ public:
         length++;
     }
     
-    // check whether snake is dead
-    // bool isDead() {
-
-    // }
     // print the snake on the specified coordinates
     void printSnake() {
         for (int i = 0; i < length; i++) {
@@ -418,7 +414,7 @@ public:
     // condition for snake to die
     bool isSnakeDead() {
         pair<int, int> head = snake.getHead();
-        if (head.first >= board.getHeight() || head.second >= board.getWidth() || head.first <= 0 || head.second < 0) return true;
+        if (head.first > board.getHeight() || head.second >= board.getWidth() || head.first <= 0 || head.second < 0) return true;
         else {
             deque<pair<int, int>> body = snake.getSnakeBody();
             for (int i = 1; i < snake.getLength(); i++) {
