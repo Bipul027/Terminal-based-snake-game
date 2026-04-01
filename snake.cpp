@@ -6,12 +6,12 @@ using namespace std;
 
 const int WIDTH = 30;
 const int HEIGHT = 30;
-const int HEAD_X = WIDTH/2;
+const int HEAD_X = WIDTH/3;
 const int HEAD_Y = HEIGHT/2;
 const char BODY_CHAR = '*';
 const char HEAD_CHAR = '@';
-const int TIME_DELAY = 150000;
 const int FOOD_AMOUNT = (WIDTH*HEIGHT)/100;
+int TIME_DELAY = 100000;
 
 
 class Board {
@@ -443,35 +443,96 @@ int main() {
     refresh();
     char start = getch();
     if (start == 'q' || start == 'Q') return 0;
-    
-    // main game loop
+
+    bool backTomenu = false;
     while(true) {
-        // initialize game
-        Game game;
-        
-        // apply no delay for real-time input
-        nodelay(stdscr, TRUE);
-
-        int ch;
-        // play until game over
-        while(!game.isSnakeDead()) {
-            ch = getch();
-            game.update(game.handleInput(ch));
-            game.displayScore();
-            usleep(TIME_DELAY);
-        }
+        // select difficulty menu
         clear();
-
-        // game over screen
-        nodelay(stdscr, FALSE);
-        mvprintw(0, 0, "========= GAME OVER =========");
-        mvprintw(1, 0,"YOUR SCORE IS: %d", game.getScore());
-        mvprintw(3, 0, "PLAY AGAIN? (Press any key)");
-        mvprintw(4, 0, "QUIT(q)");
-        refresh();
-        char end = getch();
-        if (end == 'q' || end == 'Q') break;
-        else continue;
+        mvprintw(0, 0, "SELECT GAME DIFFICULTY:");
+        mvprintw(1, 0, "EASY (e)");
+        mvprintw(2, 0, "MEDIUM (m)");
+        mvprintw(3, 0, "HARD (h)");
+    
+        int difficulty = 0;
+        int c = 0;
+        while(true) {
+            char diff = getch();
+            if (diff == 'e' || diff == 'E') {
+                difficulty = 0;
+                break;
+            }
+            else if (diff == 'm' || diff == 'M') {
+                difficulty = 1;
+                break;
+            }
+            else if (diff == 'h' || diff == 'H') {
+                difficulty = 2;
+                break;
+            }
+            else {
+                mvprintw(4+c, 0, "INVALID INPUT");
+            }
+        }
+    
+        TIME_DELAY = 150000 - 50000*(difficulty);
+        clear();
+    
+        // main game loop
+        while(true) {
+            // initialize game
+            Game game;
+            
+            // apply no delay for real-time input
+            nodelay(stdscr, TRUE);
+    
+            int ch;
+            // play until game over
+            while(!game.isSnakeDead()) {
+                ch = getch();
+                game.update(game.handleInput(ch));
+                game.displayScore();
+                usleep(TIME_DELAY);
+            }
+            clear();
+    
+            // game over screen
+            nodelay(stdscr, FALSE);
+            mvprintw(0, 0, "========= GAME OVER =========");
+            mvprintw(1, 0,"YOUR SCORE IS: %d", game.getScore());
+            mvprintw(3, 0, "PLAY AGAIN? (Press ENTER)");
+            mvprintw(4, 0, "CHANGE DIFFICULTY? (Press c)");
+            mvprintw(5, 0, "QUIT(q)");
+            refresh();
+    
+            bool restart = false;
+            int i = 0;
+            while(true) {
+                char end = getch();
+                if (end == '\r' || end == '\n' || end == KEY_ENTER) {
+                    restart = true;
+                    backTomenu = false;
+                    break;
+                }
+                else if (end == 'c' || end == 'C') {
+                    restart = false;
+                    backTomenu = true;
+                    break;
+                }
+                else if (end == 'q' || end == 'Q') {
+                    restart = false;
+                    backTomenu = false;
+                    break;
+                }
+                else {
+                    mvprintw(7+i, 0, "INVALID INPUT!");
+                    i++;
+                }
+            }
+            if (restart) continue;
+            else break;
+        }
+        if (backTomenu) continue;
+        else break;
     }
     endwin();
     return 0;
